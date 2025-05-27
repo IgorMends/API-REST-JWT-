@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+</head>
+<body>
+  <h1>Login</h1>
+  <form id="form-login">
+    <label>Usuário: <input type="text" id="usuario" required /></label><br />
+    <label>Senha: <input type="password" id="senha" required /></label><br />
+    <button type="submit">Entrar</button>
+  </form>
+  <p id="mensagem" style="color:red"></p>
+
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('form-login').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const usuario = document.getElementById('usuario').value;
+      const senha = document.getElementById('senha').value;
+
+      const resposta = await fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario, senha }),
+      });
+
+      const data = await resposta.json();
+
+      if (resposta.ok) {
+        localStorage.setItem('token', data.token);
+        window.location.href = 'usuarios.html';
+      } else {
+        document.getElementById('mensagem').textContent = data.mensagem || 'Erro no login';
+      }
+    });
+  </script>
+</body>
+</html>
