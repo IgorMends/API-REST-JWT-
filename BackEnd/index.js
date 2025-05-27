@@ -5,10 +5,10 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/authRoutes');
-const produtoRoutes = require('./routes/usuarioRoutes');
+const usuarioRoutes = require('./routes/usuarioRoutes');
 const { verificarToken } = require('./middlewares/authMiddleware');
 const globalLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
+  windowMs: 1 * 60 * 1000, 
   max: 100,
   message: { mensagem: 'Muitas requisições, tente novamente mais tarde.' },
 });
@@ -25,7 +25,7 @@ app.use(globalLimiter);
 app.use('/login', authRoutes);
 
 // Rotas protegidas
-app.use('/produtos', verificarToken, produtoRoutes);
+app.use('/usuarios', verificarToken, usuarioRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);

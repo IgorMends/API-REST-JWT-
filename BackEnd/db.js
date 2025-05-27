@@ -9,7 +9,7 @@ db.prepare(`
   CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
-    senha REAL NOT NULL
+    senha TEXT NOT NULL
   )
 `).run();
 
