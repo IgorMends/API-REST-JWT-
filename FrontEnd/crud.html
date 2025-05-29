@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Usuários</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Usuários</h1>
+    <button id="logout-btn">Sair</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Senha</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="usuarios-lista"></tbody>
+    </table>
+
+    <h2>Atualizar Usuário</h2>
+    <form id="atualizar-form">
+      <input type="hidden" id="upd-id" />
+      <label>Nome:<br /><input type="text" id="upd-nome" required /></label><br />
+      <label>Senha:<br /><input type="password" id="upd-senha" required /></label><br />
+      <button type="submit">Atualizar</button>
+      <button type="button" id="cancel-update">Cancelar</button>
+    </form>
+    <p id="crud-msg" class="msg-error"></p>
+  </div>
+
+  <script>
+    const apiBase = 'http://localhost:3000';
+
+    const crudMsg = document.getElementById('crud-msg');
+    const usuariosLista = document.getElementById('usuarios-lista');
+    const logoutBtn = document.getElementById('logout-btn');
+    const atualizarForm = document.getElementById('atualizar-form');
+    const updId = document.getElementById('upd-id');
+    const updNome = document.getElementById('upd-nome');
+    const updSenha = document.getElementById('upd-senha');
+    const cancelUpdateBtn = document.getElementById('cancel-update');
+
+    function verificarToken() {
+      if (!localStorage.getItem('token')) {
+        window.location.href = 'login.html';
+      }
+    }
+
+    async function carregarUsuarios() {
+      crudMsg.textContent = '';
+      usuariosLista.innerHTML = '';
+      const token = localStorage.getItem('token');
+
+      try {
+        const res = await fetch(apiBase + '/usuarios', {
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        const usuarios = await res.json();
+        if (res.ok) {
+          usuarios.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${u.id}</td>
+              <td>${u.nome}</td>
+              <td>${u.senha}</td>
+              <td>
+                <button data-id="${u.id}" data-nome="${u.nome}" data-senha="${u.senha}" class="btn-editar">Editar</button>
+                <button data-id="${u.id}" class="btn-deletar">Deletar</button>
+              </td>`;
+            usuariosLista.appendChild(tr);
+          });
+        } else {
+          crudMsg.textContent = usuarios.mensagem || 'Erro ao carregar usuários';
+        }
+      } catch {
+        crudMsg.textContent = 'Erro ao conectar com o servidor';
+      }
+    }
+
+    usuariosLista.addEventListener('click', e => {
+      if (e.target.classList.contains('btn-editar')) {
+        const { id, nome, senha } = e.target.dataset;
+        updId.value = id;
+        updNome.value = nome;
+        updSenha.value = senha;
+      } else if (e.target.classList.contains('btn-deletar')) {
+        if (confirm('Deseja deletar este usuário?')) {
+          deletarUsuario(e.target.dataset.id);
+        }
+      }
+    });
+
+    atualizarForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = updId.value;
+      const nome = updNome.value.trim();
+      const senha = updSenha.value.trim();
+      if (!id || !nome || !senha) {
+        crudMsg.textContent = 'Preencha todos os campos.';
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`${apiBase}/usuarios/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({ nome, senha }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          crudMsg.style.color = 'green';
+          crudMsg.textContent = 'Usuário atualizado com sucesso.';
+          atualizarForm.reset();
+          carregarUsuarios();
+        } else {
+          crudMsg.style.color = 'red';
+          crudMsg.textContent = data.mensagem || 'Erro ao atualizar.';
+        }
+      } catch {
+        crudMsg.textContent = 'Erro ao conectar com o servidor';
+      }
+    });
+
+    async function deletarUsuario(id) {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`${apiBase}/usuarios/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          crudMsg.style.color = 'green';
+          crudMsg.textContent = 'Usuário deletado com sucesso.';
+          carregarUsuarios();
+        } else {
+          crudMsg.textContent = data.mensagem || 'Erro ao deletar.';
+        }
+      } catch {
+        crudMsg.textContent = 'Erro ao conectar com o servidor';
+      }
+    }
+
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    });
+
+    cancelUpdateBtn.addEventListener('click', () => {
+      atualizarForm.reset();
+      crudMsg.textContent = '';
+    });
+
+    verificarToken();
+    carregarUsuarios();
+  </script>
+</body>
+</html>

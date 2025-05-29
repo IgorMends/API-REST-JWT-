@@ -2,289 +2,85 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Login e CRUD Usuários</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Login e Registro</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- Tela de login e registro -->
-  <div id="login-container">
+  <div class="container">
     <h1>Login</h1>
     <form id="login-form">
-      <label>Usuário: <br /><input type="text" id="login-usuario" required /></label><br />
-      <label>Senha: <br /><input type="password" id="login-senha" required /></label><br />
+      <label>Usuário:<br /><input type="text" id="login-usuario" required /></label><br />
+      <label>Senha:<br /><input type="password" id="login-senha" required /></label><br />
       <button type="submit">Entrar</button>
     </form>
-    <p id="login-msg" style="color:red;"></p>
+    <p id="login-msg" class="msg-error"></p>
 
     <h2>Registrar</h2>
     <form id="registro-form">
-      <label>Usuário: <br /><input type="text" id="reg-usuario" required /></label><br />
-      <label>Senha: <br /><input type="password" id="reg-senha" required /></label><br />
+      <label>Usuário:<br /><input type="text" id="reg-usuario" required /></label><br />
+      <label>Senha:<br /><input type="password" id="reg-senha" required /></label><br />
       <button type="submit">Registrar</button>
     </form>
-    <p id="registro-msg" style="color:red;"></p>
+    <p id="registro-msg" class="msg-error"></p>
   </div>
 
-  <!-- Tela de CRUD de usuários -->
-  <div id="crud-container" class="hidden">
-    <h1>Usuários</h1>
-    <button id="logout-btn">Sair</button>
+  <script>
+    const apiBase = 'http://localhost:3000';
 
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nome</th>
-          <th>Senha</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="usuarios-lista"></tbody>
-    </table>
+    const loginForm = document.getElementById('login-form');
+    const registroForm = document.getElementById('registro-form');
+    const loginMsg = document.getElementById('login-msg');
+    const registroMsg = document.getElementById('registro-msg');
 
-    <h2>Atualizar Usuário</h2>
-    <form id="atualizar-form">
-      <input type="hidden" id="upd-id" />
-      <label>Nome: <br /><input type="text" id="upd-nome" required /></label><br />
-      <label>Senha: <br /><input type="password" id="upd-senha" required /></label><br />
-      <button type="submit">Atualizar</button>
-      <button type="button" id="cancel-update">Cancelar</button>
-    </form>
-    <p id="crud-msg" style="color:red;"></p>
-  </div>
+    loginForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      loginMsg.textContent = '';
+      const usuario = document.getElementById('login-usuario').value.trim();
+      const senha = document.getElementById('login-senha').value.trim();
 
-<script>
-  const apiBase = 'http://localhost:3000'; // ajuste se precisar
-
-  // ELEMENTOS
-  const loginContainer = document.getElementById('login-container');
-  const crudContainer = document.getElementById('crud-container');
-
-  const loginForm = document.getElementById('login-form');
-  const registroForm = document.getElementById('registro-form');
-  const atualizarForm = document.getElementById('atualizar-form');
-
-  const loginMsg = document.getElementById('login-msg');
-  const registroMsg = document.getElementById('registro-msg');
-  const crudMsg = document.getElementById('crud-msg');
-
-  const usuariosLista = document.getElementById('usuarios-lista');
-  const logoutBtn = document.getElementById('logout-btn');
-
-  const updId = document.getElementById('upd-id');
-  const updNome = document.getElementById('upd-nome');
-  const updSenha = document.getElementById('upd-senha');
-  const cancelUpdateBtn = document.getElementById('cancel-update');
-
-  // Verifica token e mostra a tela correta
-  function checarLogin() {
-    const token = localStorage.getItem('token');
-    if (token) {
-      loginContainer.classList.add('hidden');
-      crudContainer.classList.remove('hidden');
-      carregarUsuarios();
-    } else {
-      loginContainer.classList.remove('hidden');
-      crudContainer.classList.add('hidden');
-    }
-  }
-
-  // Login
-  loginForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    loginMsg.textContent = '';
-
-    const usuario = document.getElementById('login-usuario').value.trim();
-    const senha = document.getElementById('login-senha').value.trim();
-
-    try {
-      const res = await fetch(apiBase + '/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario, senha }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        checarLogin();
-      } else {
-        loginMsg.textContent = data.mensagem || 'Erro no login';
-      }
-    } catch (err) {
-      loginMsg.textContent = 'Erro ao conectar com o servidor';
-    }
-  });
-
-  // Registro
-  registroForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    registroMsg.textContent = '';
-
-    const usuario = document.getElementById('reg-usuario').value.trim();
-    const senha = document.getElementById('reg-senha').value.trim();
-
-    try {
-      const res = await fetch(apiBase + '/login/registrar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario, senha }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        registroMsg.style.color = 'green';
-        registroMsg.textContent = 'Usuário registrado com sucesso. Faça login.';
-        registroForm.reset();
-      } else {
-        registroMsg.style.color = 'red';
-        registroMsg.textContent = data.mensagem || 'Erro ao registrar usuário';
-      }
-    } catch (err) {
-      registroMsg.style.color = 'red';
-      registroMsg.textContent = 'Erro ao conectar com o servidor';
-    }
-  });
-
-  // Carrega lista de usuários
-  async function carregarUsuarios() {
-    crudMsg.textContent = '';
-    usuariosLista.innerHTML = '';
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-      checarLogin();
-      return;
-    }
-
-    try {
-      const res = await fetch(apiBase + '/usuarios', {
-        headers: { Authorization: 'Bearer ' + token },
-      });
-
-      const usuarios = await res.json();
-      if (res.ok) {
-        usuarios.forEach(u => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${u.id}</td>
-            <td>${u.nome}</td>
-            <td>${u.senha}</td>
-            <td>
-              <button data-id="${u.id}" data-nome="${u.nome}" data-senha="${u.senha}" class="btn-editar">Editar</button>
-              <button data-id="${u.id}" class="btn-deletar">Deletar</button>
-            </td>
-          `;
-          usuariosLista.appendChild(tr);
+      try {
+        const res = await fetch(apiBase + '/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario, senha }),
         });
-      } else {
-        crudMsg.textContent = usuarios.mensagem || 'Erro ao carregar usuários';
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          window.location.href = 'crud.html';
+        } else {
+          loginMsg.textContent = data.mensagem || 'Erro no login';
+        }
+      } catch {
+        loginMsg.textContent = 'Erro ao conectar com o servidor';
       }
-    } catch {
-      crudMsg.textContent = 'Erro ao conectar com o servidor';
-    }
-  }
+    });
 
-  // Delegação eventos para editar e deletar
-  usuariosLista.addEventListener('click', e => {
-    if (e.target.classList.contains('btn-editar')) {
-      const id = e.target.dataset.id;
-      const nome = e.target.dataset.nome;
-      const senha = e.target.dataset.senha;
+    registroForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      registroMsg.textContent = '';
+      const usuario = document.getElementById('reg-usuario').value.trim();
+      const senha = document.getElementById('reg-senha').value.trim();
 
-      updId.value = id;
-      updNome.value = nome;
-      updSenha.value = senha;
-
-    } else if (e.target.classList.contains('btn-deletar')) {
-      if (confirm('Confirma exclusão do usuário?')) {
-        deletarUsuario(e.target.dataset.id);
+      try {
+        const res = await fetch(apiBase + '/login/registrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario, senha }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          registroMsg.style.color = 'green';
+          registroMsg.textContent = 'Usuário registrado com sucesso. Faça login.';
+          registroForm.reset();
+        } else {
+          registroMsg.style.color = 'red';
+          registroMsg.textContent = data.mensagem || 'Erro ao registrar usuário';
+        }
+      } catch {
+        registroMsg.textContent = 'Erro ao conectar com o servidor';
       }
-    }
-  });
-
-  // Atualizar usuário
-  atualizarForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    crudMsg.textContent = '';
-
-    const id = updId.value;
-    const nome = updNome.value.trim();
-    const senha = updSenha.value.trim();
-
-    if (!id || !nome || !senha) {
-      crudMsg.textContent = 'Preencha todos os campos para atualizar.';
-      return;
-    }
-
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${apiBase}/usuarios/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + token,
-        },
-        body: JSON.stringify({ nome, senha }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        crudMsg.style.color = 'green';
-        crudMsg.textContent = 'Usuário atualizado com sucesso.';
-        atualizarForm.reset();
-        carregarUsuarios();
-      } else {
-        crudMsg.style.color = 'red';
-        crudMsg.textContent = data.mensagem || 'Erro ao atualizar usuário.';
-      }
-    } catch {
-      crudMsg.style.color = 'red';
-      crudMsg.textContent = 'Erro ao conectar com o servidor';
-    }
-  });
-
-  // Cancelar atualização
-  cancelUpdateBtn.addEventListener('click', e => {
-    atualizarForm.reset();
-    crudMsg.textContent = '';
-  });
-
-  // Deletar usuário
-  async function deletarUsuario(id) {
-    crudMsg.textContent = '';
-
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${apiBase}/usuarios/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token },
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        crudMsg.style.color = 'green';
-        crudMsg.textContent = 'Usuário deletado com sucesso.';
-        carregarUsuarios();
-      } else {
-        crudMsg.style.color = 'red';
-        crudMsg.textContent = data.mensagem || 'Erro ao deletar usuário.';
-      }
-    } catch {
-      crudMsg.style.color = 'red';
-      crudMsg.textContent = 'Erro ao conectar com o servidor';
-    }
-  }
-
-// Logout
-logoutBtn.addEventListener('click', () => {
-localStorage.removeItem('token');
-checarLogin();
-});
-
-// Iniciar
-checarLogin();
-</script>
-
-</body> </html> 
+    });
+  </script>
+</body>
+</html>
