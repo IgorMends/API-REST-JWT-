@@ -11,7 +11,7 @@ exports.login = (req, res) => {
     .get(usuario, senha);
 
   if (user) {
-    const token = jwt.sign({ usuario }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ usuario }, JWT_SECRET, { expiresIn: '1m' });
     return res.json({ token });
   }
 

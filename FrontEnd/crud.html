@@ -46,9 +46,42 @@
     const cancelUpdateBtn = document.getElementById('cancel-update');
 
     function verificarToken() {
-      if (!localStorage.getItem('token')) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Decodifica o token e verifica tempo restante
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const exp = payload.exp * 1000; // exp em ms
+        const agora = Date.now();
+        const tempoRestante = exp - agora;
+
+        if (tempoRestante <= 0) {
+          localStorage.removeItem('token');
+          window.location.href = 'login.html';
+        } else {
+          setTimeout(() => {
+            localStorage.removeItem('token');
+            alert('Sua sessão expirou.');
+            window.location.href = 'login.html';
+          }, tempoRestante);
+        }
+      } catch (e) {
+        localStorage.removeItem('token');
         window.location.href = 'login.html';
       }
+    }
+
+    function tratarErro401(status) {
+      if (status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = 'login.html';
+        return true;
+      }
+      return false;
     }
 
     async function carregarUsuarios() {
@@ -60,6 +93,9 @@
         const res = await fetch(apiBase + '/usuarios', {
           headers: { Authorization: 'Bearer ' + token },
         });
+
+        if (tratarErro401(res.status)) return;
+
         const usuarios = await res.json();
         if (res.ok) {
           usuarios.forEach(u => {
@@ -115,6 +151,7 @@
           },
           body: JSON.stringify({ nome, senha }),
         });
+        if (tratarErro401(res.status)) return;
         const data = await res.json();
         if (res.ok) {
           crudMsg.style.color = 'green';
@@ -137,6 +174,7 @@
           method: 'DELETE',
           headers: { Authorization: 'Bearer ' + token },
         });
+        if (tratarErro401(res.status)) return;
         const data = await res.json();
         if (res.ok) {
           crudMsg.style.color = 'green';
